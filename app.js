@@ -34,7 +34,7 @@ import { getFirestore, collection, addDoc, serverTimestamp,
 
 // // ===========================================================================
 // VERSI NETLIFY: API Key Gemini DIHAPUS dari sini demi keamanan.
-// API Key disimpan di Environment Variables Netlify (Site Settings → Env Vars).
+// API Key disimpan di Environment Variables Netlify (Site Settings -> Env Vars).
 // Panggilan ke Gemini diarahkan ke Netlify Serverless Function: /api/gemini
 // yang berjalan di server, bukan di browser pengguna.
 // ===========================================================================
@@ -73,10 +73,10 @@ try {
     const app = initializeApp(FIREBASE_CONFIG);
     // getFirestore() mendapatkan referensi ke database Firestore dari app tersebut
     db = getFirestore(app);
-    console.log('âœ… Firebase berhasil diinisialisasi (ESM Modular).');
+    console.log('✅ Firebase berhasil diinisialisasi (ESM Modular).');
 } catch (error) {
     // Jika gagal, aplikasi tetap berjalan tapi fitur simpan riwayat nonaktif
-    console.error('âŒ Gagal inisialisasi Firebase:', error.message);
+    console.error('❌ Gagal inisialisasi Firebase:', error.message);
 }
 
 
@@ -117,7 +117,7 @@ window.simpanKeRekap = function(dataStr, btnId) {
             <td class="angka">${formatRupiah(data.fuzzy)}</td>
             <td class="angka" style="color:${warnaPersen}; font-weight:bold;">${data.persen}%</td>
             <td style="text-align:center;">
-                <button onclick="window.hapusDariRekap('${data.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;" title="Hapus">ðŸ—‘ï¸</button>
+                <button onclick="window.hapusDariRekap('${data.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;" title="Hapus">🗑️</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -142,7 +142,7 @@ window.simpanKeRekap = function(dataStr, btnId) {
         // Ubah state tombol
         const btn = document.getElementById(btnId);
         if(btn) {
-            btn.innerHTML = 'âœ… Tersimpan';
+            btn.innerHTML = '✅ Tersimpan';
             btn.style.background = 'transparent';
             btn.style.color = '#10b981';
             btn.style.border = '1px solid #10b981';
@@ -162,7 +162,7 @@ window.hapusDariRekap = function(id) {
         // Kembalikan tombol simpan di chat ke kondisi semula
         const btn = document.getElementById(`btn-rekap-${id}`);
         if(btn) {
-            btn.innerHTML = 'ðŸ’¾ Simpan Data Ini ke Tabel Rekap';
+            btn.innerHTML = '💾 Simpan Data Ini ke Tabel Rekap';
             btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
             btn.style.color = 'white';
             btn.style.border = 'none';
@@ -182,7 +182,7 @@ window.kosongkanRekap = function() {
         // Reset semua tombol rekap di chat
         const semuaTombol = document.querySelectorAll('[id^="btn-rekap-"]');
         semuaTombol.forEach(btn => {
-            btn.innerHTML = 'ðŸ’¾ Simpan Data Ini ke Tabel Rekap';
+            btn.innerHTML = '💾 Simpan Data Ini ke Tabel Rekap';
             btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
             btn.style.color = 'white';
             btn.style.border = 'none';
@@ -193,7 +193,7 @@ window.kosongkanRekap = function() {
 };
 
 window.jalankanAutoTest = async function() {
-    appendMessage('bot', `<p>â³ Sedang menarik dan memproses seluruh data dari Firestore...</p>`);
+    appendMessage('bot', `<p>⏳ Sedang menarik dan memproses seluruh data dari Firestore...</p>`);
     setTypingIndicator(true);
     
     // Matikan input sementara
@@ -209,7 +209,7 @@ window.jalankanAutoTest = async function() {
         });
         
         if (allData.length === 0) {
-            appendMessage('bot', `<p>âš ï¸ Database referensi masih kosong. Silakan upload file <strong>data_uji.csv</strong> Anda terlebih dahulu.</p>`);
+            appendMessage('bot', `<p>⚠️ Database referensi masih kosong. Silakan upload file <strong>data_uji.csv</strong> Anda terlebih dahulu.</p>`);
             setTypingIndicator(false);
             setInputDisabled(false);
             return;
@@ -263,7 +263,7 @@ window.jalankanAutoTest = async function() {
                         <td class="angka">${formatRupiah(hasilFuzzy.hpp)}</td>
                         <td class="angka" style="color:${warnaPersen}; font-weight:bold;">${persen.toFixed(2)}%</td>
                         <td style="text-align:center;">
-                            <button onclick="window.hapusDariRekap('${testId}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;" title="Hapus">ðŸ—‘ï¸</button>
+                            <button onclick="window.hapusDariRekap('${testId}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px;" title="Hapus">🗑️</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -281,7 +281,7 @@ window.jalankanAutoTest = async function() {
         setInputDisabled(false);
         appendMessage('bot', `
             <div style="background:linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1)); border:1px solid #10b981; padding:16px; border-radius:12px;">
-                <h3 style="color:#10b981; margin:0 0 10px 0;">âœ… Auto-Test ${count} Data Selesai!</h3>
+                <h3 style="color:#10b981; margin:0 0 10px 0;">✅ Auto-Test ${count} Data Selesai!</h3>
                 <p style="margin:0 0 8px 0; font-size:13px;">Algoritma Fuzzy Tsukamoto Anda berhasil memproses <strong>${count} data uji</strong> secara instan (tanpa campur tangan AI/Kalibrasi).</p>
                 <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; display:inline-block; margin-top:8px;">
                     Rata-rata Error Total (MAPE): <br>
@@ -289,7 +289,7 @@ window.jalankanAutoTest = async function() {
                 </div>
                 <p style="margin:16px 0 12px 0; font-size:13px;">Data sudah tersusun rapi di dalam tabel dan siap di-<em>screenshot</em> untuk Bab 4.</p>
                 <button onclick="document.getElementById('testModal').classList.add('active')" style="width:100%; background:linear-gradient(135deg, #10b981, #059669); border:none; color:white; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:13px; box-shadow: 0 4px 10px rgba(16,185,129,0.3);">
-                    ðŸ“‹ Buka Tabel Rekap Sekarang
+                    📋 Buka Tabel Rekap Sekarang
                 </button>
             </div>
         `);
@@ -297,7 +297,7 @@ window.jalankanAutoTest = async function() {
     } catch (e) {
         setTypingIndicator(false);
         setInputDisabled(false);
-        appendMessage('bot', `<p>âš ï¸ Gagal menjalankan Auto-Test: ${e.message}</p>`);
+        appendMessage('bot', `<p>⚠️ Gagal menjalankan Auto-Test: ${e.message}</p>`);
     }
 };
 
@@ -494,17 +494,17 @@ async function simpanKeFirestore(data) {
             panjang_cm:     data.panjang,              // Dimensi dalam cm
             lebar_cm:       data.lebar,
             tinggi_cm:      data.tinggi,
-            volume_cm3:     data.volume,               // Volume dalam cmÂ³
+            volume_cm3:     data.volume,               // Volume dalam cm³
             kualitas_bahan: data.kualitas_bahan,       // Kualitas bahan
             estimasi_hpp:   data.estimasi_hpp,         // Hasil HPP dalam Rupiah
             timestamp:      serverTimestamp()          // Waktu server saat data disimpan
         });
 
-        console.log(`âœ… Data tersimpan ke Firestore dengan ID: ${docRef.id}`);
+        console.log(`✅ Data tersimpan ke Firestore dengan ID: ${docRef.id}`);
         return docRef.id;
 
     } catch (error) {
-        console.error("âŒ Gagal menyimpan ke Firestore:", error);
+        console.error("❌ Gagal menyimpan ke Firestore:", error);
         return null;
     }
 }
@@ -582,14 +582,14 @@ const SINONIM_MEBEL = {
 // FUNGSI BIGRAM SIMILARITY (Dice Coefficient)
 // -----------------------------------------------------------------------
 // Bigram = pasangan 2 karakter berturut-turut.
-// Contoh: "lemari" â†’ {"le", "em", "ma", "ar", "ri"}
+// Contoh: "lemari" → {"le", "em", "ma", "ar", "ri"}
 //
-// Dice Coefficient = (2 Ã— |irisan bigram|) / (|bigram A| + |bigram B|)
+// Dice Coefficient = (2 × |irisan bigram|) / (|bigram A| + |bigram B|)
 // Nilainya antara 0 (sama sekali berbeda) dan 1 (identik).
 //
 // Mengapa bigram? Karena:
-//   - Menangkap typo: "lemari" vs "lmari" â†’ skor ~0.6 (masih mirip)
-//   - Menangkap singkatan: "kursi krj" vs "kursi kerja" â†’ skor lumayan
+//   - Menangkap typo: "lemari" vs "lmari" → skor ~0.6 (masih mirip)
+//   - Menangkap singkatan: "kursi krj" vs "kursi kerja" → skor lumayan
 //   - Tidak sensitif terhadap urutan kata yang mirip
 
 function hitungBigram(str) {
@@ -613,7 +613,7 @@ function skorBigram(str1, str2) {
     let irisan = 0;
     b1.forEach(bg => { if (b2.has(bg)) irisan++; });
 
-    // Dice Coefficient: (2 Ã— irisan) / (total bigram keduanya)
+    // Dice Coefficient: (2 × irisan) / (total bigram keduanya)
     return (2 * irisan) / (b1.size + b2.size);
 }
 
@@ -627,7 +627,7 @@ function skorBigram(str1, str2) {
  * SCORING SYSTEM:
  *   +3.0  per kata kunci yang EXACT MATCH di nama produk
  *   +2.0  per kata sinonim yang exact match
- *   +skor bigram Ã— 2  jika skor bigram nama produk > 0.35
+ *   +skor bigram × 2  jika skor bigram nama produk > 0.35
  *   +1.0  jika kategori utama (kata pertama) cocok
  *
  * @param {string} namaBarang - Nama barang dari ekstraksi Gemini
@@ -668,9 +668,9 @@ async function cariDataDariFirestore(namaBarang) {
         const semuaKata = [...new Set([...kataKunci, ...kataTambahan])];
         const kataUtama = kataKunci[0]; // Kata pertama = kategori utama produk
 
-        console.log('ðŸ” Mencari:', queryLower);
-        console.log('ðŸ“š Kata kunci:', kataKunci);
-        console.log('ðŸ”€ Sinonim:', [...kataTambahan]);
+        console.log('🔍 Mencari:', queryLower);
+        console.log('📚 Kata kunci:', kataKunci);
+        console.log('🔀 Sinonim:', [...kataTambahan]);
 
         // Ambil semua dokumen dari Firestore
         const snap = await getDocs(collection(db, 'produk_referensi'));
@@ -714,7 +714,7 @@ async function cariDataDariFirestore(namaBarang) {
             }
 
             // --- Bonus: Kategori utama (kata pertama) cocok ---
-            // Contoh: query "kursi" â†’ produk "Kursi Tamu" dapat bonus +1
+            // Contoh: query "kursi" → produk "Kursi Tamu" dapat bonus +1
             if (kataUtama && namaDB.startsWith(kataUtama)) {
                 skor += 1;
             }
@@ -745,7 +745,7 @@ async function cariDataDariFirestore(namaBarang) {
         return { hasil: hasilPencarian, mode };
 
     } catch (err) {
-        console.error('âŒ Gagal mencari di Firestore:', err);
+        console.error('❌ Gagal mencari di Firestore:', err);
         return { hasil: [], mode: 'error' };
     }
 }
@@ -761,8 +761,8 @@ async function cariDataDariFirestore(namaBarang) {
 function buatHtmlDaftarReferensi(produkList, namaBarang, mode = 'exact') {
     // Label header berbeda tergantung mode pencarian
     const labelMode  = mode === 'exact'
-        ? `<span style="color:#34d399">âœ… ${produkList.length} produk cocok</span>`
-        : `<span style="color:#fbbf24">ðŸ”€ ${produkList.length} produk serupa (tidak ada yang persis)</span>`;
+        ? `<span style="color:#34d399">✅ ${produkList.length} produk cocok</span>`
+        : `<span style="color:#fbbf24">🔀 ${produkList.length} produk serupa (tidak ada yang persis)</span>`;
 
     const pesanMode = mode === 'exact'
         ? 'Saya menemukan produk yang cocok di database. Klik untuk langsung menghitung HPP!'
@@ -788,17 +788,17 @@ function buatHtmlDaftarReferensi(produkList, namaBarang, mode = 'exact') {
                 data-nama="${p.nama_barang}" onclick="pilihProdukReferensi(${i})">
                 <td>${relBadge}</td>
                 <td><strong>${p.nama_barang}</strong></td>
-                <td>${p.panjang}Ã—${p.lebar}Ã—${p.tinggi} cm</td>
-                <td>${vol.toLocaleString('id-ID')} cmÂ³</td>
+                <td>${p.panjang}×${p.lebar}×${p.tinggi} cm</td>
+                <td>${vol.toLocaleString('id-ID')} cm³</td>
                 <td><span class="badge ${kBadge}">${p.kualitas_bahan}</span></td>
                 <td style="color:var(--text-success)">${hppAktual}</td>
-                <td><button class="pilih-btn">âœ… Pilih</button></td>
+                <td><button class="pilih-btn">✅ Pilih</button></td>
             </tr>`;
     }).join('');
 
     return `
         <div class="response-header">
-            <span class="icon">${mode === 'exact' ? 'ðŸ”' : 'ðŸ”€'}</span>
+            <span class="icon">${mode === 'exact' ? '🔍' : '🔀'}</span>
             <strong>Pencarian: "${namaBarang}"</strong>
         </div>
         <p style="font-size:12px; margin-bottom:6px;">${labelMode}</p>
@@ -813,7 +813,7 @@ function buatHtmlDaftarReferensi(produkList, namaBarang, mode = 'exact') {
             </table>
         </div>
         <p style="font-size:12px; color:var(--text-secondary); margin-top:8px;">
-            ðŸ’¡ Dimensi hanya <em>referensi</em>. Ketik ukuran spesifik Anda untuk hasil lebih akurat.
+            💡 Dimensi hanya <em>referensi</em>. Ketik ukuran spesifik Anda untuk hasil lebih akurat.
         </p>
         <style>
             .ref-row:hover td { background: rgba(99,102,241,0.08); }
@@ -858,49 +858,49 @@ function buatHtmlResponBot(namaBarang, hasilFuzzy) {
     // Menggunakan template literal (backtick) untuk membuat HTML multi-baris dengan mudah
     return `
         <div class="response-header">
-            <span class="icon">ðŸª‘</span>
+            <span class="icon">🪑</span>
             <strong>Estimasi HPP: ${namaBarang}</strong>
         </div>
 
         <div class="detail-section">
-            <p class="section-label">ðŸ“ Dimensi & Volume</p>
+            <p class="section-label">📐 Dimensi & Volume</p>
             <div class="detail-grid">
                 <span>Panjang</span><span>${input.panjang} cm</span>
                 <span>Lebar</span><span>${input.lebar} cm</span>
                 <span>Tinggi</span><span>${input.tinggi} cm</span>
-                <span>Volume</span><span>${input.volume.toLocaleString("id-ID")} cmÂ³</span>
+                <span>Volume</span><span>${input.volume.toLocaleString("id-ID")} cm³</span>
                 <span>Kualitas Bahan</span><span>${input.kualitas_bahan}</span>
             </div>
         </div>
 
         <div class="detail-section">
-            <p class="section-label">ðŸ”¢ Fuzzifikasi Volume</p>
+            <p class="section-label">🔢 Fuzzifikasi Volume</p>
             <div class="detail-grid">
-                <span>Î¼ Volume Kecil</span><span>${fuzzifikasi.muKecil}</span>
-                <span>Î¼ Volume Sedang</span><span>${fuzzifikasi.muSedang}</span>
-                <span>Î¼ Volume Besar</span><span>${fuzzifikasi.muBesar}</span>
+                <span>μ Volume Kecil</span><span>${fuzzifikasi.muKecil}</span>
+                <span>μ Volume Sedang</span><span>${fuzzifikasi.muSedang}</span>
+                <span>μ Volume Besar</span><span>${fuzzifikasi.muBesar}</span>
             </div>
         </div>
 
         <div class="detail-section">
-            <p class="section-label">ðŸ“‹ Evaluasi Aturan Aktif</p>
+            <p class="section-label">📋 Evaluasi Aturan Aktif</p>
             <div class="table-wrapper">
                 <table class="rules-table">
-                    <thead><tr><th>Aturan</th><th>Î± (Alpha)</th><th>Output</th><th>z (Crisp)</th></tr></thead>
+                    <thead><tr><th>Aturan</th><th>α (Alpha)</th><th>Output</th><th>z (Crisp)</th></tr></thead>
                     <tbody>${barisTabelAturan}</tbody>
                 </table>
             </div>
         </div>
 
         <div class="detail-section">
-            <p class="section-label">âš–ï¸ Defuzzifikasi (Weighted Average)</p>
+            <p class="section-label">⚖️ Defuzzifikasi (Weighted Average)</p>
             <div class="formula-box">
-                Z* = Î£(Î±áµ¢Â·záµ¢) / Î£(Î±áµ¢) = ${totalAlphaZ.toLocaleString("id-ID")} / ${totalAlpha} = <strong>${formatRupiah(hpp)}</strong>
+                Z* = Σ(αᵢ·zᵢ) / Σ(αᵢ) = ${totalAlphaZ.toLocaleString("id-ID")} / ${totalAlpha} = <strong>${formatRupiah(hpp)}</strong>
             </div>
         </div>
 
         <div class="result-box">
-            <span class="result-label">ðŸ’° ESTIMASI HPP</span>
+            <span class="result-label">💰 ESTIMASI HPP</span>
             <span class="result-value">${formatRupiah(hpp)}</span>
         </div>
         <p class="disclaimer">*Estimasi ini telah disimpan ke riwayat. Harga dapat berbeda sesuai kondisi aktual.</p>
@@ -965,7 +965,7 @@ async function prosesPesanUser() {
                 'Asisten sedang berpikir...';
 
             if (hasilDB.length > 0) {
-                // âœ… Data ditemukan! Tampilkan pilihan ke user dengan label mode pencarian.
+                // ✅ Data ditemukan! Tampilkan pilihan ke user dengan label mode pencarian.
                 // Mode 'exact' = produk persis; mode 'mirip' = produk serupa via bigram/sinonim
                 setTypingIndicator(false);
                 const htmlReferensi = buatHtmlDaftarReferensi(hasilDB, nama_barang, modeDB);
@@ -978,10 +978,10 @@ async function prosesPesanUser() {
                 setInputDisabled(false);
                 return; // Tunggu user memilih produk
             }
-            // Tidak ada hasil sama sekali â†’ lanjut ke pesan minta dimensi
+            // Tidak ada hasil sama sekali → lanjut ke pesan minta dimensi
         }
 
-        // Jika dimensi tidak lengkap DAN tidak ada di database â†’ minta ke user
+        // Jika dimensi tidak lengkap DAN tidak ada di database → minta ke user
         if (!nama_barang || !dimensiLengkap || !kualitas_bahan) {
             const kurang = [];
             if (!nama_barang)   kurang.push('nama barang');
@@ -1007,7 +1007,7 @@ async function prosesPesanUser() {
         // Pastikan tidak ada dimensi 0 atau minus yang lolos dari AI
         if (panjang <= 0 || lebar <= 0 || tinggi <= 0) {
             setTypingIndicator(false);
-            appendMessage('bot', `<p>âš ï¸ Maaf, perhitungan gagal karena ada dimensi yang bernilai 0 atau minus. Silakan periksa kembali ukuran untuk "<strong>${nama_barang}</strong>".</p>`);
+            appendMessage('bot', `<p>⚠️ Maaf, perhitungan gagal karena ada dimensi yang bernilai 0 atau minus. Silakan periksa kembali ukuran untuk "<strong>${nama_barang}</strong>".</p>`);
             setInputDisabled(false);
             return;
         }
@@ -1040,10 +1040,10 @@ async function prosesPesanUser() {
 
     } catch (error) {
         // Tangani semua jenis error (network error, parse error, dll)
-        console.error("âŒ Error saat memproses pesan:", error);
+        console.error("❌ Error saat memproses pesan:", error);
         setTypingIndicator(false);
         appendMessage("bot", `
-            <p>âš ï¸ Terjadi kesalahan saat memproses permintaan Anda:</p>
+            <p>⚠️ Terjadi kesalahan saat memproses permintaan Anda:</p>
             <p><em>${error.message}</em></p>
             <p>Pastikan API Key Gemini sudah benar dan koneksi internet Anda stabil, lalu coba lagi.</p>
         `);
@@ -1085,7 +1085,7 @@ userInput.addEventListener("keydown", (event) => {
     // Tambahkan pesan sambutan dari bot sebagai pesan pertama di chat
     appendMessage("bot", `
         <div class="welcome-message">
-            <p>ðŸ‘‹ Selamat datang di <strong>Chatbot Estimasi HPP Mebel Kustom</strong>!</p>
+            <p>👋 Selamat datang di <strong>Chatbot Estimasi HPP Mebel Kustom</strong>!</p>
             <p>Saya menggunakan <strong>AI (Google Gemini)</strong> dan <strong>Logika Fuzzy Tsukamoto</strong> untuk mengestimasi Harga Pokok Produksi mebel Anda.</p>
             <p>Ceritakan mebel yang ingin Anda buat, misalnya:</p>
             <div class="example-prompts">
@@ -1100,7 +1100,7 @@ userInput.addEventListener("keydown", (event) => {
                 </button>
             </div>
             <p style="font-size:12px; margin-top:12px; color:var(--text-secondary);">
-                ðŸ“Š Punya data produk di Excel? <a href="upload.html" target="_blank" style="color:var(--text-accent)">Upload ke database</a> agar bot bisa mencari otomatis!
+                📊 Punya data produk di Excel? <a href="upload.html" target="_blank" style="color:var(--text-accent)">Upload ke database</a> agar bot bisa mencari otomatis!
             </p>
         </div>
     `);
@@ -1125,12 +1125,12 @@ window.pilihProdukReferensi = async function(index) {
     const namaBarang = window._namaBarangTerakhir || produk?.nama_barang;
 
     if (!produk) {
-        appendMessage('bot', '<p>âš ï¸ Terjadi kesalahan: data produk tidak ditemukan.</p>');
+        appendMessage('bot', '<p>⚠️ Terjadi kesalahan: data produk tidak ditemukan.</p>');
         return;
     }
 
     // Tampilkan konfirmasi pilihan user sebagai pesan
-    appendMessage('user', `âœ… Pilih: ${produk.nama_barang} (${produk.panjang}Ã—${produk.lebar}Ã—${produk.tinggi} cm, ${produk.kualitas_bahan})`);
+    appendMessage('user', `✅ Pilih: ${produk.nama_barang} (${produk.panjang}×${produk.lebar}×${produk.tinggi} cm, ${produk.kualitas_bahan})`);
 
     setInputDisabled(true);
     setTypingIndicator(true);
@@ -1159,10 +1159,10 @@ window.pilihProdukReferensi = async function(index) {
         if (produk.hpp_aktual) {
             selisih  = hasilFuzzy.hpp - produk.hpp_aktual;
             persen   = ((Math.abs(selisih) / produk.hpp_aktual) * 100).toFixed(2);
-            arah     = selisih > 0 ? 'â†‘ lebih tinggi' : 'â†“ lebih rendah';
+            arah     = selisih > 0 ? '↑ lebih tinggi' : '↓ lebih rendah';
             tambahanInfo   = `
                 <div class="detail-section">
-                    <p class="section-label">ðŸ“Š Perbandingan dengan Data Aktual</p>
+                    <p class="section-label">📊 Perbandingan dengan Data Aktual</p>
                     <div class="detail-grid">
                         <span>HPP Aktual (data)</span><span style="color:var(--text-success)">${formatRupiah(produk.hpp_aktual)}</span>
                         <span>HPP Estimasi (Fuzzy)</span><span style="color:#a5b4fc">${formatRupiah(hasilFuzzy.hpp)}</span>
@@ -1196,7 +1196,7 @@ window.pilihProdukReferensi = async function(index) {
                 <div style="margin-top: 12px; text-align: right;">
                     <button id="btn-rekap-${testId}" onclick="window.simpanKeRekap('${strData}', 'btn-rekap-${testId}')" 
                             style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 10px rgba(16,185,129,0.2);">
-                        ðŸ’¾ Simpan Data Ini ke Tabel Rekap
+                        💾 Simpan Data Ini ke Tabel Rekap
                     </button>
                 </div>
             `;
@@ -1224,7 +1224,7 @@ window.pilihProdukReferensi = async function(index) {
 
     } catch (err) {
         setTypingIndicator(false);
-        appendMessage('bot', `<p>âš ï¸ Gagal menghitung: ${err.message}</p>`);
+        appendMessage('bot', `<p>⚠️ Gagal menghitung: ${err.message}</p>`);
     } finally {
         setInputDisabled(false);
         userInput.focus();
