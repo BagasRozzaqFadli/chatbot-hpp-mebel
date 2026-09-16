@@ -1,0 +1,18 @@
+# Daftar file yang DIABAIKAN oleh Git (tidak ikut di-upload)
+# File-file ini bersifat sensitif atau tidak relevan untuk Netlify
+
+# File lokal Windows (tidak perlu di Netlify)
+Jalankan_Aplikasi.bat
+*.bat
+
+# File data besar (boleh dihapus dari Netlify, data sudah di Firebase)
+data_meubel_HPP_2026_jepara.csv
+
+# File dokumen pribadi
+*.pdf
+*.xlsx
+*.md
+
+# File Node.js sementara (jika ada)
+node_modules/
+.env

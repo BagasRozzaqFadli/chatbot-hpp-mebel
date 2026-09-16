@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<!--
+  FILE: index.html
+  DESKRIPSI: Struktur utama halaman aplikasi Chatbot HPP Mebel Kustom.
+             File ini adalah "kerangka" yang menghubungkan semua file lain.
+  CATATAN: <!DOCTYPE html> wajib ditulis di baris pertama untuk memberitahu
+           browser bahwa ini adalah dokumen HTML5 (bukan HTML versi lama).
+-->
+<html lang="id">
+<!--
+  lang="id" memberitahu browser dan mesin pencari (SEO) bahwa bahasa halaman
+  ini adalah Bahasa Indonesia. Ini juga membantu screen reader (alat bantu difabel).
+-->
+<head>
+    <!--
+      <head> berisi informasi META tentang halaman yang TIDAK ditampilkan
+      langsung ke pengguna, tapi penting untuk browser, mesin pencari, dan
+      perangkat yang mengakses halaman ini.
+    -->
+
+    <!-- Encoding karakter UTF-8 agar semua karakter (termasuk aksara khusus) terbaca -->
+    <meta charset="UTF-8">
+
+    <!--
+      Viewport meta tag: KRUSIAL untuk responsivitas di perangkat mobile.
+      - width=device-width: lebar halaman = lebar layar perangkat
+      - initial-scale=1.0: tidak ada zoom otomatis saat pertama kali dibuka
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Meta deskripsi untuk SEO (mesin pencari) dan preview link di media sosial -->
+    <meta name="description" content="Aplikasi Chatbot Estimasi Harga Pokok Produksi (HPP) Mebel Kustom menggunakan Algoritma Fuzzy Tsukamoto dan Google Gemini AI">
+
+    <!-- Judul halaman yang muncul di tab browser -->
+    <title>Chatbot Estimasi HPP Mebel | Fuzzy Tsukamoto + Gemini AI</title>
+
+    <!--
+      Memuat Google Fonts: Font 'Inter' (modern, bersih) dan 'JetBrains Mono' (untuk kode/angka).
+      Menggunakan <link rel="preconnect"> lebih dulu untuk mempercepat koneksi ke server Google Fonts.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Memuat file CSS kita sendiri untuk styling aplikasi -->
+    <link rel="stylesheet" href="style.css">
+
+    <!--
+      =========================================================================
+      FIREBASE SDK v11 (MODULAR/ESM) via Import Map
+      =========================================================================
+      SOLUSI untuk error "Tracking Prevention blocked access to storage":
+      SDK lama (compat) menggunakan IndexedDB/cookie untuk caching yang
+      diblokir oleh fitur Tracking Prevention di Edge/Chrome.
+
+      Solusi: Gunakan Firebase SDK versi MODULAR (ESM) yang diimpor langsung
+      sebagai ES Module. Cara ini TIDAK membutuhkan storage/cookie sama sekali,
+      sehingga aman dari pemblokiran browser apapun.
+
+      "importmap" adalah fitur browser modern untuk memetakan nama modul
+      ke URL CDN, sehingga kita bisa menulis:
+        import { initializeApp } from 'firebase/app'
+      tanpa perlu bundler (Webpack/Vite).
+    -->
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app":       "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js"
+      }
+    }
+    </script>
+
+</head>
+
+<body>
+    <!--
+      <body> berisi semua konten yang TERLIHAT oleh pengguna.
+      Semua elemen HTML di sini akan dirender oleh browser.
+    -->
+
+    <!-- ====================================================================
+         CONTAINER UTAMA APLIKASI
+         Pembungkus terluar yang mengatur layout sidebar + area chat (flexbox)
+         ==================================================================== -->
+    <div id="app-container">
+
+        <!-- ==================================================================
+             SIDEBAR KIRI: Informasi & Panduan Penggunaan
+             ================================================================== -->
+        <aside id="sidebar" style="background: linear-gradient(180deg, #13161f 0%, #1a1d27 100%);">
+  
+            <!-- Header Sidebar: Logo + Judul -->
+            <div class="sidebar-header" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 24px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:16px;">
+                <div class="app-logo" style="width: 64px; height: 64px; border-radius: 20px; font-size: 32px; box-shadow: 0 8px 24px rgba(99,102,241,0.3); border: 2px solid rgba(255,255,255,0.1);">🪵</div>
+                <div class="app-title">
+                    <h1 style="font-size: 18px; font-weight: 800; background: linear-gradient(to right, #ffffff, #a5b4fc); -webkit-background-clip: text; color: transparent;">Estimasi HPP Mebel</h1>
+                    <p style="font-size: 12px; color: #818cf8; margin-top:4px; font-weight:700; letter-spacing:0.5px;">FUZZY TSUKAMOTO + AI</p>
+                </div>
+            </div>
+
+            <!-- Menu Pengujian Bab 4 (Dinaikkan ke atas agar utama) -->
+            <div class="sidebar-section" style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.05)); border: 1px solid rgba(16,185,129,0.3); border-radius: 16px; padding: 20px;">
+                <h3 style="color:#34d399; font-size:13px; display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:16px;">🧪</span> Panel Pengujian Bab 4
+                </h3>
+                <p style="font-size:11.5px; color:rgba(255,255,255,0.7); margin-bottom:16px; line-height:1.5;">Eksekusi dan simpan hasil uji sistem pakar Anda secara instan di sini.</p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button onclick="document.getElementById('testModal').classList.add('active')" style="width:100%; background:linear-gradient(135deg, #059669, #10b981); border:none; color:white; padding:10px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:13px; box-shadow: 0 4px 12px rgba(16,185,129,0.25); display:flex; justify-content:center; align-items:center; gap:8px; transition: transform 0.2s;">
+                        📋 Tabel Rekap (<span id="testCount">0</span>)
+                    </button>
+                    <button onclick="window.jalankanAutoTest()" style="width:100%; background:linear-gradient(135deg, #2563eb, #3b82f6); border:none; color:white; padding:10px; border-radius:10px; cursor:pointer; font-weight:bold; font-size:13px; box-shadow: 0 4px 12px rgba(59,130,246,0.3); display:flex; justify-content:center; align-items:center; gap:8px; transition: transform 0.2s;">
+                        ⚡ Auto-Test 50 Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section: Kualitas Bahan -->
+            <div class="sidebar-section" style="border-radius: 16px; padding: 18px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);">
+                <h3 style="font-size:12px; display:flex; align-items:center; gap:8px; color:var(--text-accent);"><span style="font-size:15px;">📐</span> Kualitas Bahan</h3>
+                <div style="display:grid; grid-template-columns: 1fr; gap:10px; margin-top:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(52,211,153,0.08); border-radius:8px; border:1px solid rgba(52,211,153,0.2);">
+                        <span style="font-size:12px; color:#34d399; font-weight:600;">Standar</span>
+                        <span style="font-size:10px; color:rgba(255,255,255,0.5);">Pinus/MDF</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(96,165,250,0.08); border-radius:8px; border:1px solid rgba(96,165,250,0.2);">
+                        <span style="font-size:12px; color:#60a5fa; font-weight:600;">Menengah</span>
+                        <span style="font-size:10px; color:rgba(255,255,255,0.5);">Grade B</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:rgba(251,191,36,0.08); border-radius:8px; border:1px solid rgba(251,191,36,0.2);">
+                        <span style="font-size:12px; color:#fbbf24; font-weight:600;">Premium</span>
+                        <span style="font-size:10px; color:rgba(255,255,255,0.5);">Grade A (TPK)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Range Estimasi HPP -->
+            <div class="sidebar-section" style="border-radius: 16px; padding: 18px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);">
+                <h3 style="font-size:12px; display:flex; align-items:center; gap:8px; color:var(--text-accent);"><span style="font-size:15px;">💰</span> Kurva HPP Tsukamoto</h3>
+                <div style="display:flex; flex-direction:column; gap:16px; margin-top:16px;">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="font-size:12px; color:var(--text-secondary);">Rendah</span>
+                            <span style="font-size:12px; color:#34d399; font-weight:700; font-family:var(--mono);">25rb - 2.5jt</span>
+                        </div>
+                        <div style="height:4px; width:100%; background:rgba(52,211,153,0.15); border-radius:4px;"><div style="height:100%; width:30%; background:#34d399; border-radius:4px; box-shadow:0 0 8px rgba(52,211,153,0.5);"></div></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="font-size:12px; color:var(--text-secondary);">Sedang</span>
+                            <span style="font-size:12px; color:#60a5fa; font-weight:700; font-family:var(--mono);">1.5jt - 6jt</span>
+                        </div>
+                        <div style="height:4px; width:100%; background:rgba(96,165,250,0.15); border-radius:4px;"><div style="height:100%; width:60%; background:#60a5fa; border-radius:4px; box-shadow:0 0 8px rgba(96,165,250,0.5);"></div></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="font-size:12px; color:var(--text-secondary);">Tinggi</span>
+                            <span style="font-size:12px; color:#fbbf24; font-weight:700; font-family:var(--mono);">3jt - 6jt</span>
+                        </div>
+                        <div style="height:4px; width:100%; background:rgba(251,191,36,0.15); border-radius:4px;"><div style="height:100%; width:100%; background:#fbbf24; border-radius:4px; box-shadow:0 0 8px rgba(251,191,36,0.5);"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer sidebar -->
+            <div style="margin-top: auto; padding-top: 24px; text-align:center;">
+                <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:rgba(99,102,241,0.1); border-radius:99px; border:1px solid rgba(99,102,241,0.25);">
+                    <span style="width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow:0 0 8px #10b981;"></span>
+                    <span style="font-size:10px; font-weight:800; color:#818cf8; letter-spacing:0.8px;">SYSTEM ONLINE</span>
+                </div>
+                <p style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:16px; line-height:1.6;">
+                    Skripsi Teknik Informatika &copy; 2026<br>
+                    Universitas Islam Nahdlatul Ulama Jepara
+                </p>
+            </div>
+  
+          </aside>
+
+
+        <!-- ==================================================================
+             AREA CHAT UTAMA
+             ================================================================== -->
+        <main id="chat-container">
+
+            <!-- Header Area Chat -->
+            <header id="chat-header">
+                <div class="chat-header-info">
+                    <!-- Avatar animasi bot -->
+                    <div class="bot-avatar">🤖</div>
+                    <div class="bot-info">
+                        <h2>Asisten HPP Mebel</h2>
+                        <!-- Status online: titik hijau berkedip + teks -->
+                        <div class="status-online">
+                            <span class="status-dot"></span>
+                            <span>Online &bull; Siap Estimasi</span>
+                        </div>
+                    </div>
+                </div>
+
+            </header>
+
+            <!-- ==============================================================
+                 AREA RIWAYAT PESAN
+                 id="chat-history" diakses oleh app.js untuk menambahkan bubble.
+                 ============================================================== -->
+            <div id="chat-history">
+                <!--
+                  Konten awal (pesan selamat datang) akan ditambahkan oleh app.js
+                  secara programatis saat halaman pertama kali dimuat.
+                  Kita tidak menulisnya langsung di sini agar lebih mudah dikontrol.
+                -->
+            </div>
+
+            <!-- ==============================================================
+                 INDIKATOR "BOT SEDANG MENGETIK"
+                 Diletakkan di LUAR chat-history tapi di DALAM chat-container
+                 agar posisinya tepat di atas input area.
+                 Visibility dikontrol oleh app.js via JavaScript.
+                 ============================================================== -->
+            <div id="typing-indicator">
+                <div class="typing-dots">
+                    <!-- 3 titik beranimasi - efek "sedang mengetik" -->
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>Asisten sedang berpikir...</span>
+            </div>
+
+            <!-- ==============================================================
+                 AREA INPUT PENGGUNA
+                 ============================================================== -->
+            <div id="input-container">
+
+                <!-- Wrapper input dengan efek glow -->
+                <div class="input-wrapper">
+                    <!--
+                      textarea dipilih daripada <input type="text"> karena:
+                      1. Bisa menampung teks multi-baris
+                      2. Lebih fleksibel untuk deskripsi panjang
+                      rows="1" = tinggi awal 1 baris, bisa bertambah via CSS/JS
+                    -->
+                    <textarea
+                        id="user-input"
+                        rows="1"
+                        placeholder="Ceritakan mebel yang ingin Anda estimasi... (contoh: Lemari kayu jati 200x60x210 cm)"
+                        aria-label="Kotak pesan"
+                    ></textarea>
+                </div>
+
+                <!--
+                  Tombol Kirim
+                  aria-label untuk aksesibilitas (screen reader)
+                  id="send-button" diakses oleh app.js untuk event listener klik
+                -->
+                <button id="send-button" aria-label="Kirim pesan" title="Kirim (Enter)">
+                    <!-- Ikon panah kirim menggunakan Unicode -->
+                    &#10148;
+                </button>
+
+            </div>
+            <!-- Teks petunjuk keyboard -->
+            <p class="input-hint">Tekan <kbd>Enter</kbd> untuk kirim &bull; <kbd>Shift+Enter</kbd> untuk baris baru</p>
+
+        </main>
+        <!-- Akhir Area Chat -->
+
+    </div>
+    <!-- Akhir App Container -->
+
+
+    <!-- ======================================================================
+         MEMUAT SCRIPT JAVASCRIPT
+         CATATAN PENTING TENTANG type="module":
+         - fuzzy.js dimuat biasa (defer) karena tidak menggunakan import/export.
+           Fungsi di dalamnya otomatis menjadi global dan bisa dipanggil app.js.
+         - app.js dimuat dengan type="module" karena menggunakan sintaks
+           'import' untuk Firebase ESM. Script bertype module otomatis defer
+           (dieksekusi setelah HTML selesai di-parse), jadi tidak perlu
+           menambahkan atribut defer secara eksplisit.
+         URUTAN: fuzzy.js harus ada di atas agar fungsinya tersedia saat app.js berjalan.
+         ====================================================================== -->
+    <script src="fuzzy.js" defer></script>
+    <script src="app.js"   type="module"></script>
+
+    <!-- ===== MODAL TABEL REKAP PENGUJIAN ===== -->
+    <div class="modal-overlay" id="testModal">
+        <div class="test-modal">
+            <div class="modal-header">
+                <h2>📋 Tabel Rekapitulasi Pengujian 50 Data (Bab 4)</h2>
+                <button class="modal-close" onclick="document.getElementById('testModal').classList.remove('active')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="test-table">
+                    <thead>
+                        <tr>
+                            <th>No / Nama Barang</th>
+                            <th>P</th>
+                            <th>L</th>
+                            <th>T</th>
+                            <th>Kualitas</th>
+                            <th style="text-align:right">HPP Aktual</th>
+                            <th style="text-align:right">HPP Estimasi (Fuzzy)</th>
+                            <th style="text-align:right">MAPE (%)</th>
+                            <th style="text-align:center; width: 60px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="testTableBody">
+                        <!-- Data pengujian akan ditambahkan secara dinamis ke sini lewat app.js -->
+                    </tbody>
+                </table>
+                <div style="text-align: right; margin-top: 16px;">
+                    <button onclick="window.kosongkanRekap()" style="background: rgba(239,68,68,0.1); color:#ef4444; border:1px solid #ef4444; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;">🗑️ Kosongkan Semua</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

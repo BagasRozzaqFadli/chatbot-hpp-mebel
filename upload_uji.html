@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<!--
+  FILE: upload.html
+  DESKRIPSI: Halaman admin untuk mengupload data produk referensi
+             dari file Excel (.xlsx/.xls) ATAU CSV (.csv) ke Firebase Firestore.
+  MENDUKUNG: Format CSV data_meubel_HPP_2026_jepara.csv dengan:
+             - Separator titik koma (;) — dideteksi otomatis
+             - Kolom bahan_baku → dikonversi ke kualitas (Standar/Menengah/Premium)
+             - Kolom panjang_cm / lebar_cm / tinggi_cm → panjang / lebar / tinggi
+             - Kolom estimasi_hpp_rupiah → hpp_aktual
+             - Kolom wilayah → keterangan
+-->
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Data Uji Bab 4 | HPP Mebel Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- SheetJS: untuk membaca file Excel DAN CSV -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+    <!-- Firebase ESM via Import Map — tidak membutuhkan cookie/storage -->
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app":       "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js"
+      }
+    }
+    </script>
+
+    <style>
+        :root {
+            --bg-app: #0f1117;
+            --bg-card: #1a1d27;
+            --accent: #6366f1;
+            --text-primary: #e8eaf6;
+            --text-secondary: #8892b0;
+            --text-accent: #818cf8;
+            --border: #2d3148;
+            --success: #34d399;
+            --danger: #f87171;
+            --font: 'Inter', system-ui, sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font); background: var(--bg-app); color: var(--text-primary); min-height: 100vh; padding: 32px 16px; }
+        .container { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+        .page-header { text-align: center; padding: 32px; background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; }
+        .page-header h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+        .page-header p { color: var(--text-secondary); line-height: 1.6; }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+        .card h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text-accent); }
+
+        .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.25s; background: rgba(255,255,255,0.01); }
+        .drop-zone.drag-over { border-color: var(--accent); background: rgba(99,102,241,0.08); }
+        .drop-zone p { color: var(--text-secondary); margin: 6px 0; }
+        #file-input { display: none; }
+
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #8b5cf6); color: white; box-shadow: 0 4px 15px rgba(99,102,241,0.35); }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-outline:hover { border-color: var(--accent); color: var(--text-primary); }
+
+        .format-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .format-table th { background: rgba(99,102,241,0.12); color: var(--text-accent); padding: 10px 14px; text-align: left; }
+        .format-table td { padding: 9px 14px; border-top: 1px solid rgba(255,255,255,0.04); color: var(--text-secondary); }
+        .format-table td:first-child { color: var(--text-primary); font-family: var(--mono); font-size: 12px; }
+
+        .preview-wrapper { overflow-x: auto; overflow-y: auto; max-height: 380px; border: 1px solid var(--border); border-radius: 10px; }
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .preview-table thead { position: sticky; top: 0; z-index: 1; }
+        .preview-table th { background: #1e2233; color: var(--text-accent); padding: 8px 12px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+        .preview-table td { padding: 7px 12px; border-top: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
+        .preview-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+        #status-box { display: none; padding: 16px; border-radius: 10px; font-size: 14px; line-height: 1.7; }
+        #status-box.info    { background: rgba(99,102,241,0.1);  border: 1px solid rgba(99,102,241,0.25); }
+        #status-box.success { background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.25); color: var(--success); }
+        #status-box.error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: var(--danger); }
+
+        .progress-bar-wrapper { width: 100%; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 10px; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), #8b5cf6); border-radius: 99px; transition: width 0.3s; width: 0%; }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+        .badge-standar  { background: rgba(52,211,153,0.15); color: #34d399; }
+        .badge-menengah { background: rgba(96,165,250,0.15); color: #60a5fa; }
+        .badge-premium  { background: rgba(251,191,36,0.15); color: #fbbf24; }
+
+        .alert { display: flex; gap: 12px; padding: 14px 16px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+        .alert-success { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); color: var(--success); }
+        .alert-warn    { background: rgba(251,191,36,0.08);  border: 1px solid rgba(251,191,36,0.2);  color: #fbbf24; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card  { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+        .stat-val   { font-size: 24px; font-weight: 800; font-family: var(--mono); color: var(--text-accent); }
+        .stat-lbl   { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+        .mapping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .mapping-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 11px; background: rgba(255,255,255,0.02); border-radius: 7px; }
+        .mapping-from { color: var(--text-secondary); font-family: var(--mono); font-size: 11px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ===== HEADER ===== -->
+    <div class="page-header" style="background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1)); border-color: rgba(245,158,11,0.3);">
+        <div style="font-size:48px; margin-bottom:12px;">🧪</div>
+        <h1 style="color: #f59e0b;">Upload Data Uji Skripsi (Bab 4)</h1>
+        <p>Mendukung <strong>Excel (.xlsx/.xls)</strong> dan <strong>CSV (.csv)</strong><br>
+           Halaman khusus ini akan <strong style="color:var(--text-accent)">Otomatis Menyuntikkan Nomor Urut</strong> (contoh: [1] Meja) ke database agar mudah dicari di Chatbot!</p>
+    </div>
+
+    <!-- ===== NOTIF FORMAT DIKENALI ===== -->
+    <div class="alert alert-success">
+        <span>✅</span>
+        <div>
+            <strong>Format CSV Anda sudah dikenali otomatis!</strong><br>
+            Separator <code>;</code> terdeteksi. Kolom <code>bahan_baku</code> → kualitas,
+            <code>panjang_cm/lebar_cm/tinggi_cm</code> → dimensi,
+            <code>estimasi_hpp_rupiah</code> → HPP aktual, <code>wilayah</code> → keterangan.
+        </div>
+    </div>
+
+    <!-- ===== PEMETAAN BAHAN BAKU ===== -->
+    <div class="card">
+        <h2>🪵 Pemetaan Bahan Baku → Kualitas (Otomatis)</h2>
+        <div class="mapping-grid">
+            <div class="mapping-item"><span class="mapping-from">Jati Perhutani (TPK) Grade A</span><span class="badge badge-premium">Premium</span></div>
+            <div class="mapping-item"><span class="mapping-from">Mahoni Grade A</span><span class="badge badge-premium">Premium</span></div>
+            <div class="mapping-item"><span class="mapping-from">Jati Perhutani (TPK) Grade B</span><span class="badge badge-menengah">Menengah</span></div>
+            <div class="mapping-item"><span class="mapping-from">Mahoni Grade B / Mahoni umum</span><span class="badge badge-menengah">Menengah</span></div>
+            <div class="mapping-item"><span class="mapping-from">Jati Kampung / Jati Rakyat</span><span class="badge badge-standar">Standar</span></div>
+            <div class="mapping-item"><span class="mapping-from">Pinus / Albasia / MDF</span><span class="badge badge-standar">Standar</span></div>
+        </div>
+    </div>
+
+    <!-- ===== PANDUAN KOLOM ===== -->
+    <div class="card">
+        <h2>📋 Kolom CSV yang Dikenali Otomatis</h2>
+        <table class="format-table">
+            <thead><tr><th>Kolom di File Anda</th><th>Alias Lain yang Dikenali</th><th>Dipetakan ke</th><th>Wajib?</th></tr></thead>
+            <tbody>
+                <tr><td>nama_barang</td><td>nama, produk</td><td>nama_barang</td><td>✅</td></tr>
+                <tr><td>panjang_cm</td><td>panjang, p_cm</td><td>panjang (cm)</td><td>✅</td></tr>
+                <tr><td>lebar_cm</td><td>lebar, l_cm</td><td>lebar (cm)</td><td>✅</td></tr>
+                <tr><td>tinggi_cm</td><td>tinggi, t_cm</td><td>tinggi (cm)</td><td>✅</td></tr>
+                <tr><td>bahan_baku</td><td>kualitas_bahan, kualitas, bahan</td><td>kualitas_bahan</td><td>✅</td></tr>
+                <tr><td>estimasi_hpp_rupiah</td><td>hpp_aktual, hpp, harga_pokok</td><td>hpp_aktual</td><td>⚪ Opsional</td></tr>
+                <tr><td>wilayah</td><td>lokasi, area, keterangan</td><td>keterangan</td><td>⚪ Opsional</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ===== AREA UPLOAD ===== -->
+    <div style="display:flex; gap:20px; align-items: stretch; margin-bottom: 24px;">
+        <!-- Kiri: Upload File -->
+        <div class="card" style="flex: 1; margin: 0;">
+            <h2>📁 Pilih File Excel / CSV</h2>
+            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" style="padding: 32px 24px;">
+                <div style="font-size:32px; margin-bottom:8px;">📂</div>
+                <p>Klik atau drag &amp; drop file ke sini</p>
+                <p style="font-size:12px;">Format: <strong>.csv, .xlsx, .xls</strong></p>
+            </div>
+            <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+            <div id="file-info" style="display:none; margin-top:12px; padding:12px 14px; background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.2); border-radius:8px; font-size:13px; color:var(--success);"></div>
+        </div>
+        
+        <!-- Kanan: Tambah Manual -->
+        <div class="card" style="flex: 1; margin: 0;">
+            <h2>✍️ Atau Tambah Manual</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="grid-column: span 2;">
+                    <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">Nama Barang</label>
+                    <input type="text" id="man-nama" placeholder="Cth: Meja Rias Klasik" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.2); color:white; font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">Panjang (cm)</label>
+                    <input type="number" id="man-p" placeholder="0" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.2); color:white;">
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">Lebar (cm)</label>
+                    <input type="number" id="man-l" placeholder="0" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.2); color:white;">
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">Tinggi (cm)</label>
+                    <input type="number" id="man-t" placeholder="0" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.2); color:white;">
+                </div>
+                <div>
+                    <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">Kualitas Bahan</label>
+                    <select id="man-kualitas" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:#1a1d27; color:white;">
+                        <option value="Standar">Standar</option>
+                        <option value="Menengah">Menengah</option>
+                        <option value="Premium">Premium</option>
+                    </select>
+                </div>
+                <div style="grid-column: span 2;">
+                    <label style="font-size:12px; color:var(--text-secondary); display:block; margin-bottom:4px;">HPP Aktual (Rp) - Opsional</label>
+                    <input type="number" id="man-hpp" placeholder="0" style="width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.2); color:white;">
+                </div>
+            </div>
+            <button class="btn btn-outline" style="width:100%; margin-top:12px; justify-content:center;" onclick="tambahManual()">➕ Tambahkan ke Tabel Bawah</button>
+        </div>
+    </div>
+
+    <!-- ===== STATISTIK + PREVIEW ===== -->
+    <div id="stats-card" class="card" style="display:none;">
+        <h2>📈 Statistik Data yang Dibaca</h2>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-val" id="stat-total">0</div><div class="stat-lbl">Total Baris</div></div>
+            <div class="stat-card"><div class="stat-val" style="color:#34d399" id="stat-valid">0</div><div class="stat-lbl">Baris Valid</div></div>
+            <div class="stat-card"><div class="stat-val" style="color:#f87171" id="stat-invalid">0</div><div class="stat-lbl">Diabaikan</div></div>
+            <div class="stat-card"><div class="stat-val" style="color:#fbbf24; font-size:15px;" id="stat-kualitas">-</div><div class="stat-lbl">Kualitas Terbanyak</div></div>
+        </div>
+
+        <h2 style="margin-bottom:12px;">👀 Preview (20 Baris Pertama)</h2>
+        <div class="alert alert-warn" style="margin-bottom:12px;">
+            <span>⚠️</span>
+            <span>Periksa kolom <strong>Kualitas</strong> — pastikan hasil pemetaan bahan baku sudah benar sebelum upload.</span>
+        </div>
+        <div class="preview-wrapper">
+            <table class="preview-table">
+                <thead><tr>
+                    <th>#</th><th>Nama Barang</th><th>Bahan Baku Asli</th>
+                    <th>Kualitas</th><th>P×L×T (cm)</th><th>Volume cm³</th>
+                    <th>HPP Aktual</th><th>Wilayah</th><th>✓</th>
+                </tr></thead>
+                <tbody id="preview-body"></tbody>
+            </table>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-primary" id="upload-btn" onclick="uploadKeFirestore()">
+                🚀 Upload <span id="upload-count">0</span> Data ke Firebase
+            </button>
+            <button class="btn btn-outline" onclick="batalReset()">✖ Ganti File</button>
+            <span style="font-size:12px; color:var(--text-secondary); margin-left:auto;">
+                Koleksi Firestore: <code style="color:var(--text-accent)">produk_referensi</code>
+            </span>
+        </div>
+    </div>
+
+    <!-- ===== STATUS ===== -->
+    <div id="status-box">
+        <div id="status-text"></div>
+        <div class="progress-bar-wrapper" id="progress-wrapper" style="display:none;">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div style="text-align:center; padding-bottom:24px;">
+        <a href="index.html" class="btn btn-outline">← Kembali ke Chatbot</a>
+    </div>
+</div>
+
+<!-- ============================================================
+     SCRIPT UTAMA - type="module" agar bisa pakai import Firebase
+     ============================================================ -->
+<script type="module">
+import { initializeApp }                                              from 'firebase/app';
+import { getFirestore, collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+
+// --- Konfigurasi Firebase ---
+const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyD78d6wWdppdsZwyas_IYK0x2SvvwdhcBc",
+    authDomain:        "skripsi-chatbot-mebel.firebaseapp.com",
+    projectId:         "skripsi-chatbot-mebel",
+    storageBucket:     "skripsi-chatbot-mebel.firebasestorage.app",
+    messagingSenderId: "908574807446",
+    appId:             "1:908574807446:web:6c062b5555f83496e639b7"
+};
+
+const app = initializeApp(FIREBASE_CONFIG);
+const db  = getFirestore(app);
+
+// Variabel global: menyimpan data yang sudah dinormalisasi dari file
+let dataProduk = [];
+
+// ============================================================
+// FUNGSI: PEMETAAN BAHAN BAKU → KUALITAS
+// Mengonversi nama kayu spesifik (dari kolom bahan_baku CSV)
+// menjadi salah satu dari 3 kategori kualitas Fuzzy Tsukamoto.
+// ============================================================
+function petakanKualitas(bahan) {
+    const b = (bahan || '').toLowerCase();
+    // --- PREMIUM: kayu kualitas terbaik ---
+    if (b.includes('grade a') && !b.includes('grade b')) return 'Premium';
+    if (b.includes('mahoni grade a') || b.includes('mahoni a'))     return 'Premium';
+    if (b.includes('jati emas') || b.includes('solid jati'))        return 'Premium';
+    // Khusus untuk "Jati Perhutani (TPK) Grade A"
+    if (b.includes('tpk') && !b.includes('grade b'))               return 'Premium';
+    // --- MENENGAH: kualitas sedang ---
+    if (b.includes('grade b'))                                      return 'Menengah';
+    if (b.includes('mahoni') && !b.includes('grade'))               return 'Menengah';
+    if (b.includes('sonokeling') || b.includes('sengon laut'))      return 'Menengah';
+    // --- STANDAR: kayu ekonomis ---
+    if (b.includes('kampung') || b.includes('rakyat'))              return 'Standar';
+    if (b.includes('pinus') || b.includes('albasia'))               return 'Standar';
+    if (b.includes('mdf') || b.includes('plywood'))                 return 'Standar';
+    if (b.includes('sengon') && !b.includes('laut'))                return 'Standar';
+    // Default: Menengah (posisi aman jika tidak dikenal)
+    return 'Menengah';
+}
+
+// ============================================================
+// FUNGSI: AMBIL NILAI KOLOM DENGAN BERBAGAI ALIAS
+// Membuat sistem fleksibel terhadap variasi nama kolom.
+// ============================================================
+function ambilKolom(baris, ...aliases) {
+    for (const alias of aliases) {
+        // Cek exact match
+        if (baris[alias] !== undefined && String(baris[alias]).trim() !== '') return baris[alias];
+        // Cek case-insensitive
+        const key = Object.keys(baris).find(k => k.toLowerCase().trim() === alias.toLowerCase());
+        if (key && String(baris[key]).trim() !== '') return baris[key];
+    }
+    return null;
+}
+
+// ============================================================
+// FUNGSI: PARSE FILE CSV
+// Deteksi separator otomatis: titik koma (;) atau koma (,)
+// ============================================================
+function parseCSV(teks) {
+    // Hapus BOM (Byte Order Mark) — sering ada di file CSV dari Windows/Excel
+    teks = teks.replace(/^\uFEFF/, '');
+
+    // Pisahkan menjadi baris-baris, buang baris kosong
+    const baris = teks.split(/\r?\n/).filter(b => b.trim() !== '');
+    if (baris.length < 2) return [];
+
+    // Deteksi separator: hitung jumlah ; vs , di baris header
+    const headerLine = baris[0];
+    const jumlahSemikolon = (headerLine.match(/;/g) || []).length;
+    const jumlahKoma      = (headerLine.match(/,/g) || []).length;
+    const sep = jumlahSemikolon >= jumlahKoma ? ';' : ',';
+
+    console.log(`Separator CSV terdeteksi: "${sep}" (${jumlahSemikolon} titik koma vs ${jumlahKoma} koma)`);
+
+    // Parse header: split, bersihkan spasi dan tanda kutip
+    const headers = headerLine.split(sep).map(h => h.trim().replace(/^["']|["']$/g, ''));
+
+    // Parse setiap baris data → object {kolom: nilai}
+    return baris.slice(1).map(b => {
+        const vals = b.split(sep).map(v => v.trim().replace(/^["']|["']$/g, ''));
+        const obj  = {};
+        headers.forEach((hd, i) => { obj[hd] = vals[i] || ''; });
+        return obj;
+    });
+}
+
+// ============================================================
+// FUNGSI: NORMALISASI SATU BARIS DATA
+// Mengubah raw baris → objek produk yang terstruktur
+// ============================================================
+function normalisasiBaris(baris, idx) {
+    // Ambil nilai setiap field dengan fallback ke berbagai alias nama kolom
+    const nama      = ambilKolom(baris, 'nama_barang', 'nama', 'produk', 'item') || '';
+    const panjangRaw= ambilKolom(baris, 'panjang_cm', 'panjang', 'p_cm', 'p', 'length') || '0';
+    const lebarRaw  = ambilKolom(baris, 'lebar_cm', 'lebar', 'l_cm', 'l', 'width')    || '0';
+    const tinggiRaw = ambilKolom(baris, 'tinggi_cm', 'tinggi', 't_cm', 't', 'height') || '0';
+    const bahanRaw  = ambilKolom(baris, 'bahan_baku', 'kualitas_bahan', 'kualitas', 'bahan', 'material') || '';
+    const hppRaw    = ambilKolom(baris, 'estimasi_hpp_rupiah', 'hpp_aktual', 'hpp', 'harga_pokok') || '0';
+    const wilayah   = ambilKolom(baris, 'wilayah', 'lokasi', 'area', 'keterangan') || '';
+
+    // Konversi ke angka — hapus karakter non-numerik selain titik desimal
+    const panjang = parseFloat(String(panjangRaw).replace(/[^0-9.]/g, '')) || 0;
+    const lebar   = parseFloat(String(lebarRaw).replace(/[^0-9.]/g, ''))   || 0;
+    const tinggi  = parseFloat(String(tinggiRaw).replace(/[^0-9.]/g, ''))  || 0;
+    const hpp     = parseFloat(String(hppRaw).replace(/[^0-9.]/g, ''))     || null;
+
+    // Konversi bahan_baku → kualitas
+    // Jika sudah dalam format Standar/Menengah/Premium, pakai langsung
+    // Jika nama kayu, gunakan fungsi pemetaan
+    let kualitas = bahanRaw;
+    if (!['Standar', 'Menengah', 'Premium'].includes(kualitas)) {
+        kualitas = petakanKualitas(bahanRaw);
+    }
+
+    // Validasi: semua field wajib harus ada dan dimensi > 0
+    const valid = nama !== '' && panjang > 0 && lebar > 0 && tinggi > 0;
+
+    return {
+        _rowIndex:      idx + 2,    // +2: index 0-based + header di baris 1
+        _valid:         valid,
+        _bahanAsli:     bahanRaw,   // Simpan nama bahan asli untuk ditampilkan di preview
+        nama_barang:    nama ? `[${idx + 1}] ${nama}` : '',
+        panjang:        panjang,
+        lebar:          lebar,
+        tinggi:         tinggi,
+        kualitas_bahan: kualitas,
+        hpp_aktual:     hpp > 0 ? hpp : null,
+        keterangan:     wilayah
+    };
+}
+
+// ============================================================
+// FUNGSI: BACA FILE (CSV atau Excel)
+// ============================================================
+function bacaFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'csv') {
+        // FileReader.readAsText() untuk CSV
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const rawData = parseCSV(e.target.result);
+                prosesData(rawData, file.name);
+            } catch (err) {
+                tampilkanStatus('error', '❌ Gagal membaca CSV: ' + err.message);
+            }
+        };
+        reader.onerror = () => tampilkanStatus('error', '❌ Tidak bisa membuka file.');
+        // Coba UTF-8 dulu (standar modern)
+        reader.readAsText(file, 'UTF-8');
+
+    } else if (['xlsx', 'xls'].includes(ext)) {
+        // FileReader.readAsArrayBuffer() untuk Excel, lalu parse dengan SheetJS
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data     = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet    = workbook.Sheets[workbook.SheetNames[0]];
+                const rawData  = XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' });
+                prosesData(rawData, file.name);
+            } catch (err) {
+                tampilkanStatus('error', '❌ Gagal membaca Excel: ' + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+
+    } else {
+        tampilkanStatus('error', '❌ Format tidak didukung. Gunakan .csv, .xlsx, atau .xls');
+    }
+}
+
+// ============================================================
+// FUNGSI: PROSES DAN TAMPILKAN DATA SETELAH DIBACA
+// ============================================================
+function prosesData(rawData, namaFile) {
+    if (!rawData.length) {
+        tampilkanStatus('error', '❌ File kosong atau tidak bisa dibaca.');
+        return;
+    }
+
+    // Normalisasi semua baris
+    dataProduk = rawData.map((b, i) => normalisasiBaris(b, i));
+
+    const valid   = dataProduk.filter(b => b._valid);
+    const invalid = dataProduk.filter(b => !b._valid);
+
+    // Hitung distribusi kualitas untuk statistik
+    const kCount = {};
+    valid.forEach(p => { kCount[p.kualitas_bahan] = (kCount[p.kualitas_bahan] || 0) + 1; });
+    const kTerbanyak = Object.entries(kCount).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
+
+    // Update UI: info file
+    document.getElementById('file-info').style.display = 'block';
+    document.getElementById('file-info').innerHTML =
+        `📄 <strong>${namaFile}</strong> — ${rawData.length} baris, ` +
+        `<span style="color:#34d399">${valid.length} valid</span>, ` +
+        `<span style="color:#f87171">${invalid.length} diabaikan</span>`;
+
+    // Update UI: statistik
+    document.getElementById('stats-card').style.display    = 'block';
+    document.getElementById('stat-total').textContent      = rawData.length;
+    document.getElementById('stat-valid').textContent      = valid.length;
+    document.getElementById('stat-invalid').textContent    = invalid.length;
+    document.getElementById('stat-kualitas').textContent   = kTerbanyak;
+    document.getElementById('upload-count').textContent    = valid.length;
+
+    // Update UI: preview tabel
+    const body = document.getElementById('preview-body');
+    body.innerHTML = dataProduk.slice(0, 20).map(b => {
+        const kBadge = b.kualitas_bahan === 'Premium'  ? 'badge-premium'  :
+                       b.kualitas_bahan === 'Menengah' ? 'badge-menengah' : 'badge-standar';
+        const vol    = Math.round(b.panjang * b.lebar * b.tinggi);
+        const hpp    = b.hpp_aktual ? 'Rp ' + Math.round(b.hpp_aktual).toLocaleString('id-ID') : '-';
+        return `<tr style="${!b._valid ? 'opacity:0.4;' : ''}">
+            <td style="color:var(--text-secondary)">${b._rowIndex}</td>
+            <td><strong>${b.nama_barang || '<em>kosong</em>'}</strong></td>
+            <td style="color:var(--text-secondary); max-width:160px; overflow:hidden; text-overflow:ellipsis;" title="${b._bahanAsli}">${b._bahanAsli || '-'}</td>
+            <td><span class="badge ${kBadge}">${b.kualitas_bahan}</span></td>
+            <td>${b.panjang} × ${b.lebar} × ${b.tinggi}</td>
+            <td>${vol > 0 ? vol.toLocaleString('id-ID') : '-'}</td>
+            <td style="color:var(--success)">${hpp}</td>
+            <td style="color:var(--text-secondary)">${b.keterangan || '-'}</td>
+            <td>${b._valid ? '✅' : '❌'}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ============================================================
+// FUNGSI: UPLOAD KE FIRESTORE menggunakan writeBatch()
+// writeBatch mengirim banyak dokumen sekaligus dalam 1 request
+// jauh lebih efisien dari addDoc() satu per satu.
+// Firestore membatasi 500 operasi per batch; kita gunakan 400.
+// ============================================================
+window.uploadKeFirestore = async function() {
+    const dataValid = dataProduk.filter(b => b._valid);
+    if (!dataValid.length) {
+        tampilkanStatus('error', '❌ Tidak ada data valid untuk diupload.');
+        return;
+    }
+
+    document.getElementById('upload-btn').disabled = true;
+    document.getElementById('progress-wrapper').style.display = 'block';
+    document.getElementById('progress-bar').style.width = '0%';
+
+    let totalBerhasil = 0;
+    const ukuranBatch = 400;
+
+    for (let i = 0; i < dataValid.length; i += ukuranBatch) {
+        const potongan = dataValid.slice(i, i + ukuranBatch);
+        const batch    = writeBatch(db);
+
+        potongan.forEach(produk => {
+            // Buat referensi dokumen baru dengan ID otomatis
+            const ref = doc(collection(db, 'produk_referensi'));
+            batch.set(ref, {
+                nama_barang:       produk.nama_barang,
+                // Field khusus untuk pencarian case-insensitive di chatbot
+                nama_barang_lower: produk.nama_barang.toLowerCase(),
+                panjang:           produk.panjang,
+                lebar:             produk.lebar,
+                tinggi:            produk.tinggi,
+                volume:            Math.round(produk.panjang * produk.lebar * produk.tinggi),
+                kualitas_bahan:    produk.kualitas_bahan,
+                bahan_asli:        produk._bahanAsli,   // Nama kayu asli dari CSV
+                hpp_aktual:        produk.hpp_aktual,
+                harga_jual:        null,
+                keterangan:        produk.keterangan,
+                uploaded_at:       serverTimestamp()     // Waktu upload
+            });
+            totalBerhasil++;
+        });
+
+        try {
+            // commit() kirim semua operasi batch ke Firestore sekaligus
+            await batch.commit();
+        } catch (err) {
+            tampilkanStatus('error', `❌ Gagal di batch ke-${Math.floor(i/ukuranBatch)+1}: ${err.message}`);
+            document.getElementById('upload-btn').disabled = false;
+            return;
+        }
+
+        // Update progress bar dan teks status
+        const pct = Math.round(((i + potongan.length) / dataValid.length) * 100);
+        document.getElementById('progress-bar').style.width = pct + '%';
+        document.getElementById('status-text').textContent  =
+            `⏳ Mengupload... ${Math.min(i + ukuranBatch, dataValid.length)} / ${dataValid.length} data (${pct}%)`;
+        document.getElementById('status-box').style.display = 'block';
+        document.getElementById('status-box').className     = 'info';
+    }
+
+    // Selesai!
+    tampilkanStatus('success',
+        `✅ Selesai! ${totalBerhasil} produk berhasil diupload ke Firebase Firestore.\n` +
+        `📌 Koleksi: produk_referensi\n` +
+        `🤖 Sekarang kembali ke chatbot dan coba ketik: "saya ingin buat asbak"`);
+
+    document.getElementById('upload-btn').disabled = false;
+};
+
+// ============================================================
+// UTILITAS UI
+// ============================================================
+function tampilkanStatus(tipe, pesan) {
+    const box = document.getElementById('status-box');
+    box.style.display = 'block';
+    box.className     = tipe;
+    document.getElementById('status-text').innerHTML = pesan.replace(/\n/g, '<br>');
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+window.batalReset = function() {
+    dataProduk = [];
+    ['file-info', 'stats-card', 'status-box'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+    });
+    document.getElementById('file-input').value      = '';
+    document.getElementById('preview-body').innerHTML = '';
+};
+
+// ============================================================
+// LOGIKA TAMBAH MANUAL
+// ============================================================
+window.tambahManual = function() {
+    const nama = document.getElementById('man-nama').value.trim();
+    const p = parseFloat(document.getElementById('man-p').value) || 0;
+    const l = parseFloat(document.getElementById('man-l').value) || 0;
+    const t = parseFloat(document.getElementById('man-t').value) || 0;
+    const hpp = parseFloat(document.getElementById('man-hpp').value) || null;
+    const kualitas = document.getElementById('man-kualitas').value;
+    
+    if (!nama || p <= 0 || l <= 0 || t <= 0) {
+        alert('Mohon lengkapi Nama Barang dan Dimensi (P, L, T > 0)!');
+        return;
+    }
+    
+    // Tampilkan tabel jika belum terlihat
+    document.getElementById('stats-card').style.display = 'block';
+    
+    // Format menjadi baris data yang persis seperti hasil parse Excel
+    const newRow = {
+        nama_barang: nama,
+        panjang: p,
+        lebar: l,
+        tinggi: t,
+        volume: p * l * t,
+        kualitas_bahan: kualitas,
+        hpp_aktual: hpp,
+        keterangan: 'Input Manual',
+        bahan_asli: 'Input Manual',
+        is_valid: true
+    };
+    
+    dataProduk.push(newRow);
+    renderPreview();
+    
+    // Kosongkan form setelah ditambah
+    document.getElementById('man-nama').value = '';
+    document.getElementById('man-p').value = '';
+    document.getElementById('man-l').value = '';
+    document.getElementById('man-t').value = '';
+    document.getElementById('man-hpp').value = '';
+    
+    tampilkanStatus('info', '✅ Data manual ditambahkan ke tabel preview. Jangan lupa klik "Upload" untuk menyimpannya ke Firebase!');
+};
+
+// ============================================================
+// EVENT LISTENERS: Input File & Drag-Drop
+// ============================================================
+document.getElementById('file-input').addEventListener('change', (e) => {
+    if (e.target.files[0]) bacaFile(e.target.files[0]);
+});
+
+const dropZone = document.getElementById('drop-zone');
+
+dropZone.addEventListener('dragover',  (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && /\.(csv|xlsx|xls)$/i.test(file.name)) {
+        bacaFile(file);
+    } else {
+        tampilkanStatus('error', '❌ File harus berformat .csv, .xlsx, atau .xls');
+    }
+});
+</script>
+</body>
+</html>

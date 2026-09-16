@@ -1,0 +1,22 @@
+# File konfigurasi Netlify
+# Menginstruksikan Netlify di mana meletakkan file functions dan file publik
+
+[build]
+  # Folder yang akan dipublish ke internet (file HTML, CSS, JS berada di sini)
+  publish = "."
+  # Folder tempat serverless functions berada
+  functions = "netlify/functions"
+
+# Aturan redirect: semua request ke /api/gemini diteruskan ke serverless function
+[[redirects]]
+  from = "/api/gemini"
+  to   = "/.netlify/functions/gemini"
+  status = 200
+
+# Header keamanan standar untuk website publik
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
